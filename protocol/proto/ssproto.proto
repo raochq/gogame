@@ -1,0 +1,12 @@
+syntax = "proto3";
+package pb;
+//ping
+message MessagePing {
+    int32 EntityType = 1;
+    uint32 EntityID = 2;
+}
+// router同步server
+message MessageSyncServer {
+    repeated int32 ServerIDs = 1;
+    uint32 ServerType = 2;
+}

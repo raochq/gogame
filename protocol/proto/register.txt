@@ -1,0 +1,6 @@
+//用于自动注册proto协议，必须是 协议ID = 协议名称 //注释
+MessagePing = 1 //ping消息
+MessageSyncServer = 2 //服务器间同步
+MessageCharLoginReq = 3 //登录
+MessageCharLoginRes = 4 //登录结果
+MessageErrorNoti = 5 //错误消息

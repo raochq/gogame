@@ -1,0 +1,17 @@
+syntax = "proto3";
+package pb;
+
+message UserData {
+    fixed64 id = 1;
+    string name = 2;
+}
+
+message BaseNoti {
+    uint32 PacketNo = 1;
+    int64 NowTime = 2;
+}
+
+message MessageErrorNoti {
+    int32 ErrCode = 1;
+    BaseNoti Base = 2;
+}

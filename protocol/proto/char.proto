@@ -1,0 +1,16 @@
+syntax = "proto3";
+package pb;
+import "common.proto";
+message MessageCharLoginReq {
+    int64 AccountID = 2; //角色id
+    string ClientVer = 3; //客户端版本
+    string UserToken = 4; //toke
+}
+
+message MessageCharLoginRes {
+    int64 AccountID = 1;
+    BaseNoti Base = 2;
+    int32 Result = 3; // 0 success, <0 fail
+    int32 IsNew = 5; // 是否是新创角
+    int32 ServerID = 6; // 所在gamesvr的serverid
+}

@@ -32,3 +32,11 @@ const (
 	EntityType_GMClient     = 30 // GM client
 	EntityType_VersionSvr   = 40 // Login server
 )
+
+const (
+	INVALID_GAMESVR_ID = 0 // invalid gameserver id
+	INVALID_PORTAL_ID  = 0 // invalid portal id
+	INVALID_SESS_ID    = 0 // invalid session id
+	INVALID_PK_POS_ID  = 0 // invalid pk pos id
+	INVALID_ID         = 0 // invalid id
+)

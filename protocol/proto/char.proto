@@ -1,6 +1,13 @@
 syntax = "proto3";
 package pb;
 import "common.proto";
+
+message MessagePing {
+}
+message MessagePong {
+    BaseNoti Base = 1;
+}
+
 message MessageCharLoginReq {
     int64 AccountID = 2; //角色id
     string ClientVer = 3; //客户端版本

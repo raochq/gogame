@@ -12,6 +12,6 @@ message BaseNoti {
 }
 
 message MessageErrorNoti {
-    int32 ErrCode = 1;
+    sint32 ErrCode = 1;
     BaseNoti Base = 2;
 }

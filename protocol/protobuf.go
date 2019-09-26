@@ -13,6 +13,9 @@ const (
 	Message_SSProto_Start = 0x0000
 	Message_Gen_Start     = 0x0100
 	Message_Char_Start    = 0x0200
+	Message_IM_Start      = 0x4000
+	Message_Team_Start    = 0x5000
+	Message_SNS_Start     = 0x6000
 )
 
 type Processor struct {

@@ -3,7 +3,7 @@ package session
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/raochq/gogame/base/logger"
+	"gogame/base/logger"
 	"io"
 )
 

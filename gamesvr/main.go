@@ -1,6 +1,6 @@
 package main
 
-import "github.com/raochq/gogame/base/service"
+import "gogame/base/service"
 
 func main() {
 	svr := &Server{}

@@ -4,7 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/raochq/gogame/base/logger"
+	"gogame/base/logger"
 	"os"
 	"reflect"
 	"strconv"
@@ -105,7 +105,7 @@ func (c *CsvTable) setRowValue(v reflect.Value, record []string) error {
 			tag = field_name
 		}
 
-		keyIdx, ok := c.KeyMap[ strings.ToLower(tag)]
+		keyIdx, ok := c.KeyMap[strings.ToLower(tag)]
 		if !ok {
 			logger.Warn("CsvTable.setRowValue: field[%v] value not found", field_name)
 			continue

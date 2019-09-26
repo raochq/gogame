@@ -12,21 +12,22 @@ func _() {
 	_ = x[EC_Unknown - -1]
 	_ = x[EC_FormatError - -2]
 	_ = x[EC_DataNotExists - -3]
-	_ = x[EC_ProtobufMarshalFail - -4]
-	_ = x[EC_ProtobufUnmarshalFail - -5]
+	_ = x[EC_MarshalFail - -4]
+	_ = x[EC_UnmarshalFail - -5]
 	_ = x[EC_NetworkFail - -6]
 	_ = x[EC_ParameterInvalid - -7]
 	_ = x[EC_UnknownMessage - -8]
+	_ = x[EC_GamesvrError - -9]
 }
 
-const _ErrCode_name = "无法识别的消息参数错误网络错误Pb解码错误Pb编码错误数据不存在数据格式错误未知错误OK"
+const _ErrCode_name = "游戏服务器链接错误无法识别的消息参数错误网络错误协议解码错误协议编码错误数据不存在数据格式错误未知错误OK"
 
-var _ErrCode_index = [...]uint8{0, 21, 33, 45, 59, 73, 88, 106, 118, 120}
+var _ErrCode_index = [...]uint8{0, 27, 48, 60, 72, 90, 108, 123, 141, 153, 155}
 
 func (i ErrCode) String() string {
-	i -= -8
+	i -= -9
 	if i < 0 || i >= ErrCode(len(_ErrCode_index)-1) {
-		return "ErrCode(" + strconv.FormatInt(int64(i+-8), 10) + ")"
+		return "ErrCode(" + strconv.FormatInt(int64(i+-9), 10) + ")"
 	}
 	return _ErrCode_name[_ErrCode_index[i]:_ErrCode_index[i+1]]
 }

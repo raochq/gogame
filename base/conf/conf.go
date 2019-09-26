@@ -3,8 +3,8 @@ package conf
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/util"
+	"gogame/base/logger"
+	"gogame/base/util"
 	"os"
 )
 
@@ -12,17 +12,28 @@ var (
 	Cfg = &Config{
 		Base: BaseConfig{
 			ZoneID:   1,
-			ServerID: 1,
 			GameData: "./data",
 		},
-		Log:        logger.DefaultConfig(),
-		GameServer: GameServerConfig{},
+		Log: logger.DefaultConfig(),
+		GameServer: GameServerConfig{
+			ServerID: 1301,
+		},
 		Router: RouterConfig{
-			PortalAddr: 8010,
-			ServerAddr: 8011,
+			ServerID:   1801,
+			PortalAddr: 8801,
+			ServerAddr: 8802,
 		},
 		GameGate: GameGateConfig{
-			ListenPort: 8080,
+			ServerID:   1201,
+			ListenPort: 8201,
+		},
+		Team: TeamConfig{
+			ServerID:   1601,
+			ListenPort: 8601,
+		},
+		IM: IMConfig{
+			ServerID:   1901,
+			ListenPort: 8901,
 		},
 	}
 	confFile string
@@ -34,20 +45,32 @@ type Config struct {
 	GameServer GameServerConfig
 	Router     RouterConfig
 	GameGate   GameGateConfig
+	Team       TeamConfig
+	IM         IMConfig
 }
 type BaseConfig struct {
 	ZoneID   int    `goconf:"base:zoneid"`
 	GameData string `goconf:"base:gamedata"`
-	ServerID int    `goconf:"base:serverid"`
 }
 type GameServerConfig struct {
+	ServerID int `goconf:"gamesvr:serverid"`
 }
 type RouterConfig struct {
+	ServerID   int    `goconf:"router:serverid"`
 	PortalAddr uint16 `goconf:"router:portal_listen"`
 	ServerAddr uint16 `goconf:"router:server_listen"`
 }
 type GameGateConfig struct {
+	ServerID   int    `goconf:"gate:serverid"`
 	ListenPort uint16 `goconf:"gate:server_listen"`
+}
+type TeamConfig struct {
+	ServerID   int    `goconf:"team:serverid"`
+	ListenPort uint16 `goconf:"team:server_listen"`
+}
+type IMConfig struct {
+	ServerID   int    `goconf:"im:serverid"`
+	ListenPort uint16 `goconf:"im:server_listen"`
 }
 
 func loadConfig(file string) error {

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/raochq/gogame/base/eventloop"
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/network"
-	"github.com/raochq/gogame/base/network/session"
-	"github.com/raochq/gogame/base/util"
-	"github.com/raochq/gogame/common"
-	. "github.com/raochq/gogame/protocol"
+	"gogame/base/eventloop"
+	"gogame/base/logger"
+	"gogame/base/network"
+	"gogame/base/network/session"
+	"gogame/base/util"
+	"gogame/common"
+	. "gogame/protocol"
 	"strconv"
 )
 

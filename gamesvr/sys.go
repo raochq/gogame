@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/Terry-Mao/goconf"
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/util"
+	"gogame/base/logger"
+	"gogame/base/util"
 	"path/filepath"
 )
 

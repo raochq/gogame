@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/raochq/gogame/base/network/session"
-	. "github.com/raochq/gogame/protocol"
+	"gogame/base/network/session"
+	. "gogame/protocol"
 )
 
 type routeClient struct {

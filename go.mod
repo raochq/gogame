@@ -1,4 +1,4 @@
-module github.com/raochq/gogame
+module gogame
 
 go 1.13
 

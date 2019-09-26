@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/raochq/gogame/base/conf"
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/network"
-	"github.com/raochq/gogame/base/network/session"
-	"github.com/raochq/gogame/base/service"
+	"gogame/base/conf"
+	"gogame/base/logger"
+	"gogame/base/network"
+	"gogame/base/network/session"
+	"gogame/base/service"
 	"strconv"
 )
 

@@ -1,8 +1,8 @@
 package session
 
 import (
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/network"
+	"gogame/base/logger"
+	"gogame/base/network"
 	"time"
 )
 

@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/google/gops/agent"
-	"github.com/raochq/gogame/base/logger"
+	"gogame/base/logger"
 	"os"
 	"os/signal"
 	"sync"

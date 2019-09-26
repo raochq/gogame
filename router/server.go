@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/raochq/gogame/base/conf"
-	"github.com/raochq/gogame/base/eventloop"
-	"github.com/raochq/gogame/base/logger"
-	"github.com/raochq/gogame/base/service"
-	"github.com/raochq/gogame/base/util"
-	"github.com/raochq/gogame/common"
-	"github.com/raochq/gogame/protocol"
-	"github.com/raochq/gogame/protocol/pb"
+	"gogame/base/conf"
+	"gogame/base/eventloop"
+	"gogame/base/logger"
+	"gogame/base/service"
+	"gogame/base/util"
+	"gogame/common"
+	"gogame/protocol"
+	"gogame/protocol/pb"
 	"time"
 )
 
@@ -195,7 +195,7 @@ func (this *Server) PackGameMessage() (*protocol.SSMessage, error) {
 		SSCmd:     common.SSCMD_SYNC,
 		TransType: common.TransType_ByKey,
 		SrcType:   common.EntityType_Router,
-		SrcID:     uint16(conf.Cfg.Base.ServerID),
+		SrcID:     uint16(conf.Cfg.GameServer.ServerID),
 	}
 	ssMsg := &protocol.SSMessage{Head: head, Body: body}
 	return ssMsg, nil
@@ -227,7 +227,7 @@ func (this *Server) PackTeamMessage() (*protocol.SSMessage, error) {
 		SSCmd:     common.SSCMD_SYNC,
 		TransType: common.TransType_ByKey,
 		SrcType:   common.EntityType_Router,
-		SrcID:     uint16(conf.Cfg.Base.ServerID),
+		SrcID:     uint16(conf.Cfg.Team.ServerID),
 	}
 	msg := &protocol.SSMessage{Head: head, Body: body}
 	return msg, nil

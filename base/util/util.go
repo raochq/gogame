@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/raochq/gogame/base/logger"
+	"gogame/base/logger"
 	"os"
 	"path/filepath"
 	"runtime/debug"

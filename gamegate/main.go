@@ -3,6 +3,6 @@ package main
 import "gogame/base/service"
 
 func main() {
-	svr := NewServer()
+	svr := GetGateServerInstance()
 	service.Run(svr)
 }

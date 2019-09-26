@@ -65,3 +65,47 @@ func TimeIntervalCount(duration time.Duration, f func(), count uint32) {
 		}
 	}()
 }
+
+func IsInt32InSlice(arr []int32, value int32) bool {
+	for i := 0; i < len(arr); i++ {
+		if arr[i] == value {
+			return true
+		}
+	}
+	return false
+}
+
+func IsUint32InSlice(arr []uint32, value uint32) bool {
+	for i := 0; i < len(arr); i++ {
+		if arr[i] == value {
+			return true
+		}
+	}
+	return false
+}
+
+func IsInt64InSlice(arr []int64, value int64) bool {
+	for i := 0; i < len(arr); i++ {
+		if arr[i] == value {
+			return true
+		}
+	}
+	return false
+}
+
+func IsUint64InSlice(arr []uint64, value uint64) bool {
+	for i := 0; i < len(arr); i++ {
+		if arr[i] == value {
+			return true
+		}
+	}
+	return false
+}
+func IsStringInSlice(strSlice []string, value string) bool {
+	for i := 0; i < len(strSlice); i++ {
+		if strSlice[i] == value {
+			return true
+		}
+	}
+	return false
+}

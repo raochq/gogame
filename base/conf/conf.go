@@ -61,8 +61,9 @@ type RouterConfig struct {
 	ServerAddr uint16 `goconf:"router:server_listen"`
 }
 type GameGateConfig struct {
-	ServerID   int    `goconf:"gate:serverid"`
-	ListenPort uint16 `goconf:"gate:server_listen"`
+	ServerID    int      `goconf:"gate:serverid"`
+	ListenPort  uint16   `goconf:"gate:server_listen"`
+	RouterAddrs []string `goconf:"gate:Routers"`
 }
 type TeamConfig struct {
 	ServerID   int    `goconf:"team:serverid"`

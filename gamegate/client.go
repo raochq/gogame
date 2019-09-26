@@ -10,6 +10,7 @@ import (
 	. "gogame/errcode"
 	"gogame/protocol"
 	"gogame/protocol/pb"
+	"sync"
 	"time"
 )
 
@@ -23,6 +24,7 @@ const (
 )
 
 type ClientManager struct {
+	sync.RWMutex
 	clients map[int64]*ClientTask
 }
 type ClientTask struct {
@@ -103,6 +105,34 @@ func (this *ClientManager) Receive(con *network.TCPConnection, data []byte) {
 }
 func (this *ClientManager) Init()  {}
 func (this *ClientManager) Close() {}
+func (this *ClientManager) ServerClose(svrID uint16) {
+	// 暂时只关注gamesvr关闭的情况
+	this.RLock()
+	serverClients := []*ClientTask{}
+	for _, v_client := range this.clients {
+		if v_client.GSID == svrID {
+			serverClients = append(serverClients, v_client)
+		}
+	}
+	this.RUnlock()
+	for i := 0; i < len(serverClients); i++ {
+		serverClients[i].TerminateClient(SESS_GAMESVR_CLOSE)
+	}
+}
+
+func (this *ClientManager) GetByID(accountID int64) *ClientTask {
+	this.RLock()
+	defer this.RUnlock()
+	client := this.clients[accountID]
+	return client
+}
+func (this *ClientManager) BroadcastMsg(csMsg *protocol.CSMessage) {
+	this.RLock()
+	defer this.RUnlock()
+	for _, v_client := range this.clients {
+		v_client.SendCSMsg(csMsg)
+	}
+}
 
 //发送消息到客户端
 func (c *ClientTask) SendMessageToMe(msg proto.Message) error {
@@ -114,6 +144,10 @@ func (c *ClientTask) SendMessageToMe(msg proto.Message) error {
 	csMsg := &protocol.CSMessage{}
 	csMsg.Head.MessageID = msgID
 	csMsg.Body = bMsgBody
+	return c.SendCSMsg(csMsg)
+}
+
+func (c *ClientTask) SendCSMsg(csMsg *protocol.CSMessage) error {
 	data, _ := csMsg.Marshal()
 	if c.Flag&SESS_ENCRYPT != 0 {
 		c.Encoder.XORKeyStream(data, data)
@@ -172,6 +206,11 @@ func (c *ClientTask) HookClientMessage(msgID uint16, packetNo uint32, bMsgBody [
 		return false, bMsgBody, EC_UnknownMessage
 	}
 	return true, bMsgBody, nil
+}
+
+//处理来此服务器的消息
+func (c *ClientTask) HookServerMessage(ssMsg *protocol.SSMessageBody) (bool, error) {
+	return true, nil
 }
 
 //处理登录消息

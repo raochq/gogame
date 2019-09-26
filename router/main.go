@@ -3,6 +3,6 @@ package main
 import "gogame/base/service"
 
 func main() {
-	server := NewServer()
+	server := GetServerInstance()
 	service.Run(server)
 }

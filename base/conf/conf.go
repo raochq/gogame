@@ -52,6 +52,16 @@ type BaseConfig struct {
 	ZoneID   int    `goconf:"base:zoneid"`
 	GameData string `goconf:"base:gamedata"`
 }
+type RedisConfig struct {
+	RedisMaxIdle     int    `goconf:"redis:idle"`       //最大空闲连接数
+	RedisIdleTimeout int    `goconf:"redis:timeout"`    //空闲连接超时时间
+	ZoneRedisAddr    string `goconf:"redis:addr"`       //redis密码
+	ZoneRedisAuth    string `goconf:"redis:auth"`       //redis地址
+	ZoneRedisIndex   int    `goconf:"redis:index"`      //redis的dbindex，集群使用时必须为0
+	CrossRedisAddr   string `goconf:"redis:crossaddr"`  //跨服redis地址
+	CrossRedisAuth   string `goconf:"redis:crossauth"`  //跨服redis密码
+	CrossRedisIndex  int    `goconf:"redis:crossindex"` //跨服redis的dbindex，集群使用时必须为0
+}
 type GameServerConfig struct {
 	ServerID int `goconf:"gamesvr:serverid"`
 }
@@ -61,6 +71,7 @@ type RouterConfig struct {
 	ServerAddr uint16 `goconf:"router:server_listen"`
 }
 type GameGateConfig struct {
+	RedisConfig `goconf:"_"`
 	ServerID    int      `goconf:"gate:serverid"`
 	ListenPort  uint16   `goconf:"gate:server_listen"`
 	RouterAddrs []string `goconf:"gate:Routers"`
@@ -82,6 +93,19 @@ func loadConfig(file string) error {
 	if err := gconf.Unmarshal(&Cfg.Base); err != nil {
 		return err
 	}
+	redisCfg := RedisConfig{
+		RedisMaxIdle:     10,
+		RedisIdleTimeout: 240e9,
+		ZoneRedisAddr:    "127.0.0.1:6379",
+		ZoneRedisAuth:    "123456",
+		ZoneRedisIndex:   0,
+		CrossRedisAddr:   "127.0.0.1:6379",
+		CrossRedisAuth:   "123456",
+		CrossRedisIndex:  8,
+	}
+	if err := gconf.Unmarshal(&redisCfg); err != nil {
+		return err
+	}
 	if err := gconf.Unmarshal(&Cfg.Log); err != nil {
 		return err
 	}
@@ -91,6 +115,7 @@ func loadConfig(file string) error {
 	if err := gconf.Unmarshal(&Cfg.GameGate); err != nil {
 		return err
 	}
+	Cfg.GameGate.RedisConfig = redisCfg
 	if err := gconf.Unmarshal(&Cfg.Router); err != nil {
 		return err
 	}
@@ -125,4 +150,8 @@ func init() {
 		}
 	}
 	logger.ReloadConfig(Cfg.Log)
+}
+
+func GameGateConf() GameGateConfig {
+	return Cfg.GameGate
 }

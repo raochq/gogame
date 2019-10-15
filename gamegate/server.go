@@ -2,6 +2,7 @@ package main
 
 import (
 	"gogame/base/conf"
+	"gogame/base/dao/redis"
 	"gogame/base/logger"
 	"gogame/base/network"
 	"gogame/base/network/session"
@@ -9,15 +10,12 @@ import (
 	"strconv"
 )
 
-var cfg = conf.Cfg.GameGate
-
 var (
 	server *GateServer
 )
 
 type GateServer struct {
 	tcpServer *network.TCPServer
-	clientMgr *ClientManager
 	routerMgr *RouterMgr
 }
 
@@ -31,20 +29,22 @@ func GetGateServerInstance() *GateServer {
 	}
 	return server
 }
+
 func (s *GateServer) Init() {
+	// Redis init
+	redis.InitRedis()
+
+	cfg := conf.GameGateConf()
+
 	port := uint64(cfg.ListenPort)
 	s.tcpServer = network.NewTCPServer("0.0.0.0:" + strconv.FormatUint(port, 10))
 
 	if s.RouterInit() == false {
 		logger.Error("gate init failed as router init failed")
 	}
-	s.clientMgr = NewClientManager()
-	s.clientMgr.Init()
-
 }
 
 func (s *GateServer) Destroy() {
-
 }
 
 func (s *GateServer) MainLoop(sig <-chan byte) {
@@ -57,17 +57,18 @@ func (s *GateServer) MainLoop(sig <-chan byte) {
 			}
 		}
 	}()
-	s.tcpServer.ListenAndServe(s.clientMgr, session.DefaultSessionCodec)
+	s.tcpServer.ListenAndServe(ClientMgrGetMe(), session.DefaultSessionCodec)
 
 }
 func (s *GateServer) Terminate() {
 	logger.Info("GateServer terminated")
 	s.tcpServer.Close()
-	s.clientMgr.Close()
+	ClientMgrGetMe().Close()
 }
 func (s *GateServer) RouterInit() bool {
 	s.routerMgr = NewRouterMgr()
-	routerAddrs := conf.Cfg.GameGate.RouterAddrs
+	cfg := conf.GameGateConf()
+	routerAddrs := cfg.RouterAddrs
 	if len(routerAddrs) <= 0 {
 		logger.Error("Router init fail no routers")
 		return false

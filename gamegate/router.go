@@ -9,6 +9,7 @@ import (
 	. "gogame/common"
 	. "gogame/protocol"
 	"gogame/protocol/pb"
+	"math/rand"
 	"sync"
 )
 
@@ -17,9 +18,12 @@ type Router struct {
 	client *network.TCPClient
 }
 type RouterMgr struct {
-	sync.Mutex
-	routerMgr map[uint16]*Router
-	routerMap map[string]bool
+	sync.RWMutex
+	routerMgr      map[uint16]*Router
+	crossRouterMgr map[uint16]*Router
+	routerMap      map[string]bool
+	svrList        map[uint16]int //gamesvr列表
+	teamIds        []uint16       //teamsvr列表
 }
 
 func NewRouterMgr() *RouterMgr {
@@ -78,8 +82,7 @@ func (r *Router) dispatch(head *SSMessageHead, ssMsg *SSMessageBody) {
 	csMsg.Head.PacketNo = ssMsg.PacketNo
 	csMsg.Body = ssMsg.Body
 	if transType == TransType_ByKey {
-		clientMgr := GetGateServerInstance().clientMgr
-		client := clientMgr.GetByID(ssMsg.DstAccountID)
+		client := ClientMgrGetMe().GetByID(ssMsg.DstAccountID)
 		if client == nil {
 			// 玩家离线时，消息还未发完
 			logger.Debug("dispatch get session fail for account %d", ssMsg.DstAccountID)
@@ -96,7 +99,7 @@ func (r *Router) dispatch(head *SSMessageHead, ssMsg *SSMessageBody) {
 		}
 	} else if transType == TransType_Broadcast {
 		logger.Debug("Broadcast message 0x%x from account %d", ssMsg.MessageID, ssMsg.SrcAccountID)
-		GetGateServerInstance().clientMgr.BroadcastMsg(csMsg)
+		ClientMgrGetMe().BroadcastMsg(csMsg)
 	} else {
 		logger.Warn("Portal get message from router with unknown trans_type %d message 0x%x", transType, ssMsg.MessageID)
 	}
@@ -116,29 +119,74 @@ func (r *Router) sync(ssmsg *SSMessageBody) {
 	}
 }
 
-func AddCrossRouterServer(ids []int32, router *Router) {
+func AddCrossRouterServer(svrIds []int32, router *Router) {
 	// 每次都是全量同步
 	svr := GetGateServerInstance().routerMgr
-	oldsvrs := []int32{}
+	var oldSvrIds []int32
 	svr.Lock()
 
-	for svrID, v_router := range svr.routerMgr {
-		if v_router == router {
-			oldsvrs = append(oldsvrs, int32(svrID))
+	for svrID, vRouter := range svr.crossRouterMgr {
+		if vRouter == router {
+			oldSvrIds = append(oldSvrIds, int32(svrID))
+			delete(svr.crossRouterMgr, svrID)
+		}
+	}
+	for _, id := range svrIds {
+		svr.crossRouterMgr[uint16(id)] = router
+	}
+	var teamIds []uint16
+	for teamId, _ := range svr.crossRouterMgr {
+		teamIds = append(teamIds, teamId)
+	}
+	svr.teamIds = teamIds
+	svr.Unlock()
+	logger.Debug("update cross servers %v", svrIds)
+
+}
+func AddRouterServer(svrIds []int32, router *Router) {
+	// 每次都是全量同步，先删除，插入
+	svr := GetGateServerInstance().routerMgr
+	var oldSvrIds []int32
+	svr.Lock()
+	for svrID, vRouter := range svr.routerMgr {
+		if vRouter == router {
+			oldSvrIds = append(oldSvrIds, int32(svrID))
 			delete(svr.routerMgr, svrID)
 		}
 	}
-	for _, id := range ids {
+	for _, id := range svrIds {
 		svr.routerMgr[uint16(id)] = router
 	}
 	svr.Unlock()
-	logger.Debug("oldsvrs %v, new %v", oldsvrs, ids)
-	for _, id := range oldsvrs {
-		if !util.IsInt32InSlice(ids, id) {
-			go GetGateServerInstance().clientMgr.ServerClose(uint16(id))
+	logger.Debug("old %v, new %v", oldSvrIds, svrIds)
+	for _, id := range oldSvrIds {
+		if !util.IsInt32InSlice(svrIds, id) {
+			logger.Warn("server %d is closed", id)
+			go ClientMgrGetMe().ServerClose(uint16(id))
 		}
 	}
 }
-func AddRouterServer(ids []int32, r *Router) {
+func GameSvrAlive(serverId uint16) bool {
+	svrMgr := GetGateServerInstance().routerMgr
+	svrMgr.RLock()
+	defer svrMgr.RUnlock()
+	_, ok := svrMgr.svrList[serverId]
+	return ok
+}
 
+func DispatchGameSvr() uint16 {
+	svrMgr := GetGateServerInstance().routerMgr
+	availSirs := make([]uint16, 0, len(svrMgr.svrList))
+	svrMgr.RLock()
+	for id, status := range svrMgr.svrList {
+		if status == ServerStatusOpen {
+			availSirs = append(availSirs, id)
+		}
+	}
+	svrMgr.RUnlock()
+	if len(availSirs) <= 0 {
+		return 0
+	}
+	index := rand.Intn(len(availSirs))
+	return availSirs[index]
 }

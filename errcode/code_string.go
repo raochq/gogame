@@ -18,16 +18,19 @@ func _() {
 	_ = x[EC_ParameterInvalid - -7]
 	_ = x[EC_UnknownMessage - -8]
 	_ = x[EC_GamesvrError - -9]
+	_ = x[EC_TokenInvalid - -10]
+	_ = x[EC_AccountReplaced - -11]
+	_ = x[EC_ServerBusy - -12]
 }
 
-const _ErrCode_name = "游戏服务器链接错误无法识别的消息参数错误网络错误协议解码错误协议编码错误数据不存在数据格式错误未知错误OK"
+const _ErrCode_name = "服务器忙，请稍后再试账号被新登录踢出Token无效(验证未通过)游戏服务器链接错误无法识别的消息参数错误网络错误协议解码错误协议编码错误数据不存在数据格式错误未知错误OK"
 
-var _ErrCode_index = [...]uint8{0, 27, 48, 60, 72, 90, 108, 123, 141, 153, 155}
+var _ErrCode_index = [...]uint8{0, 30, 54, 82, 109, 130, 142, 154, 172, 190, 205, 223, 235, 237}
 
 func (i ErrCode) String() string {
-	i -= -9
+	i -= -12
 	if i < 0 || i >= ErrCode(len(_ErrCode_index)-1) {
-		return "ErrCode(" + strconv.FormatInt(int64(i+-9), 10) + ")"
+		return "ErrCode(" + strconv.FormatInt(int64(i+-12), 10) + ")"
 	}
 	return _ErrCode_name[_ErrCode_index[i]:_ErrCode_index[i+1]]
 }

@@ -45,6 +45,9 @@ func PrintPanicStack() {
 func TimeInterval(duration time.Duration, f func()) {
 	tk := time.NewTicker(duration)
 	go func() {
+		defer tk.Stop()
+		defer PrintPanicStack()
+
 		for {
 			<-tk.C
 			f()
@@ -53,8 +56,10 @@ func TimeInterval(duration time.Duration, f func()) {
 }
 func TimeIntervalCount(duration time.Duration, f func(), count uint32) {
 	tk := time.NewTicker(duration)
-	defer tk.Stop()
 	go func() {
+		defer tk.Stop()
+		defer PrintPanicStack()
+
 		for {
 			<-tk.C
 			f()

@@ -12,6 +12,7 @@ message MessageCharLoginReq {
     int64 AccountID = 2; //角色id
     string ClientVer = 3; //客户端版本
     string UserToken = 4; //toke
+    string ClientIP = 5; //客户端ip
 }
 
 message MessageCharLoginRes {

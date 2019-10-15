@@ -40,3 +40,14 @@ const (
 	INVALID_PK_POS_ID  = 0 // invalid pk pos id
 	INVALID_ID         = 0 // invalid id
 )
+
+//服务器运行状态
+const (
+	ServerStatusOpen  = 1
+	ServerStatusClose = 2
+	ServerStatusFull  = 3
+)
+
+const (
+	TCP_PING_TIMEOUT = 300 // tcp连接ping超时时间
+)

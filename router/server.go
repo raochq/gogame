@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	cfg    = conf.Cfg.Router
 	server *Server
 )
 
@@ -51,6 +50,7 @@ func GetServerInstance() *Server {
 
 func (self *Server) Init() {
 	logger.Info("=============== Server start ===============")
+	cfg := conf.RouteConf()
 	if err := self.internalListener.Start(cfg.ServerAddr); err != nil {
 		logger.Fatal("Listen internal failed, err: %v", err)
 	}
@@ -195,7 +195,7 @@ func (this *Server) PackGameMessage() (*protocol.SSMessage, error) {
 		SSCmd:     common.SSCMD_SYNC,
 		TransType: common.TransType_ByKey,
 		SrcType:   common.EntityType_Router,
-		SrcID:     uint16(conf.Cfg.GameServer.ServerID),
+		SrcID:     uint16(conf.RouteConf().ServerID),
 	}
 	ssMsg := &protocol.SSMessage{Head: head, Body: body}
 	return ssMsg, nil
@@ -227,7 +227,7 @@ func (this *Server) PackTeamMessage() (*protocol.SSMessage, error) {
 		SSCmd:     common.SSCMD_SYNC,
 		TransType: common.TransType_ByKey,
 		SrcType:   common.EntityType_Router,
-		SrcID:     uint16(conf.Cfg.Team.ServerID),
+		SrcID:     uint16(conf.RouteConf().ServerID),
 	}
 	msg := &protocol.SSMessage{Head: head, Body: body}
 	return msg, nil

@@ -36,8 +36,7 @@ func (s *GateServer) Init() {
 
 	cfg := conf.GameGateConf()
 
-	port := uint64(cfg.ListenPort)
-	s.tcpServer = network.NewTCPServer("0.0.0.0:" + strconv.FormatUint(port, 10))
+	s.tcpServer = network.NewTCPServer("0.0.0.0:" + strconv.FormatUint(uint64(cfg.ListenPort), 10))
 
 	if s.RouterInit() == false {
 		logger.Error("gate init failed as router init failed")

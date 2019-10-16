@@ -9,47 +9,33 @@ import (
 )
 
 var (
-	Cfg = &Config{
-		Base: BaseConfig{
-			ZoneID:   1,
-			GameData: "./data",
-		},
-		Log: logger.DefaultConfig(),
-		GameServer: GameServerConfig{
-			ServerID: 1301,
-		},
-		Router: RouterConfig{
-			ServerID:   1801,
-			PortalAddr: 8801,
-			ServerAddr: 8802,
-		},
-		GameGate: GameGateConfig{
-			ServerID:   1201,
-			ListenPort: 8201,
-		},
-		Team: TeamConfig{
-			ServerID:   1601,
-			ListenPort: 8601,
-		},
-		IM: IMConfig{
-			ServerID:   1901,
-			ListenPort: 8901,
-		},
+	logCfg        = logger.DefaultConfig()
+	gameServerCfg = &GameServerConfig{
+		ServerID: 1301,
 	}
+	routerCfg = &RouterConfig{
+		PortalAddr: 8801,
+		ServerAddr: 8802,
+	}
+	gameGateCfg = &GameGateConfig{
+		ListenPort:  8201,
+		RouterAddrs: []string{"127.0.0.1:8801"},
+	}
+	teamCfg = &TeamConfig{
+		ServerID:   1601,
+		ListenPort: 8601,
+	}
+	imCfg = &IMConfig{
+		ServerID:   1901,
+		ListenPort: 8901,
+	}
+
 	confFile string
 )
 
-type Config struct {
-	Base       BaseConfig
-	Log        logger.Config
-	GameServer GameServerConfig
-	Router     RouterConfig
-	GameGate   GameGateConfig
-	Team       TeamConfig
-	IM         IMConfig
-}
 type BaseConfig struct {
 	ZoneID   int    `goconf:"base:zoneid"`
+	ServerID int    `goconf:"router:serverid"`
 	GameData string `goconf:"base:gamedata"`
 }
 type RedisConfig struct {
@@ -63,24 +49,29 @@ type RedisConfig struct {
 	CrossRedisIndex  int    `goconf:"redis:crossindex"` //跨服redis的dbindex，集群使用时必须为0
 }
 type GameServerConfig struct {
+	BaseConfig
+	RedisConfig
 	ServerID int `goconf:"gamesvr:serverid"`
 }
 type RouterConfig struct {
-	ServerID   int    `goconf:"router:serverid"`
+	BaseConfig
 	PortalAddr uint16 `goconf:"router:portal_listen"`
 	ServerAddr uint16 `goconf:"router:server_listen"`
 }
 type GameGateConfig struct {
-	RedisConfig `goconf:"_"`
-	ServerID    int      `goconf:"gate:serverid"`
-	ListenPort  uint16   `goconf:"gate:server_listen"`
-	RouterAddrs []string `goconf:"gate:Routers"`
+	BaseConfig
+	RedisConfig
+	ListenPort  uint16   `goconf:"gate:listenPort"`
+	RouterAddrs []string `goconf:"gate:routers"`
 }
 type TeamConfig struct {
+	BaseConfig
 	ServerID   int    `goconf:"team:serverid"`
 	ListenPort uint16 `goconf:"team:server_listen"`
 }
 type IMConfig struct {
+	BaseConfig
+	RedisConfig
 	ServerID   int    `goconf:"im:serverid"`
 	ListenPort uint16 `goconf:"im:server_listen"`
 }
@@ -90,7 +81,15 @@ func loadConfig(file string) error {
 	if err := gconf.Parse(file); err != nil {
 		return err
 	}
-	if err := gconf.Unmarshal(&Cfg.Base); err != nil {
+	baseCfg := BaseConfig{
+		ZoneID:   1,
+		GameData: "./data",
+	}
+	if err := gconf.Unmarshal(&baseCfg); err != nil {
+		return err
+	}
+
+	if err := gconf.Unmarshal(&logCfg); err != nil {
 		return err
 	}
 	redisCfg := RedisConfig{
@@ -106,18 +105,29 @@ func loadConfig(file string) error {
 	if err := gconf.Unmarshal(&redisCfg); err != nil {
 		return err
 	}
-	if err := gconf.Unmarshal(&Cfg.Log); err != nil {
+
+	if err := gconf.Unmarshal(gameGateCfg); err != nil {
 		return err
+	} else {
+		gameGateCfg.BaseConfig = baseCfg
+		gameGateCfg.RedisConfig = redisCfg
 	}
-	if err := gconf.Unmarshal(&Cfg.GameServer); err != nil {
+	if err := gconf.Unmarshal(gameServerCfg); err != nil {
 		return err
+	} else {
+		gameServerCfg.BaseConfig = baseCfg
+		gameServerCfg.RedisConfig = redisCfg
 	}
-	if err := gconf.Unmarshal(&Cfg.GameGate); err != nil {
+	if err := gconf.Unmarshal(routerCfg); err != nil {
 		return err
+	} else {
+		routerCfg.BaseConfig = baseCfg
 	}
-	Cfg.GameGate.RedisConfig = redisCfg
-	if err := gconf.Unmarshal(&Cfg.Router); err != nil {
+
+	if err := gconf.Unmarshal(imCfg); err != nil {
 		return err
+	} else {
+		imCfg.BaseConfig = baseCfg
 	}
 	return nil
 }
@@ -149,9 +159,18 @@ func init() {
 			logger.Fatal("init failed,loadConfig error %v", err)
 		}
 	}
-	logger.ReloadConfig(Cfg.Log)
+	logger.ReloadConfig(logCfg)
 }
 
-func GameGateConf() GameGateConfig {
-	return Cfg.GameGate
+func GameGateConf() *GameGateConfig {
+	return gameGateCfg
+}
+func RouteConf() *RouterConfig {
+	return routerCfg
+}
+func TeamConf() *TeamConfig {
+	return teamCfg
+}
+func IMConf() *IMConfig {
+	return imCfg
 }

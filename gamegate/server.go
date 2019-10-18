@@ -7,7 +7,10 @@ import (
 	"gogame/base/network"
 	"gogame/base/network/session"
 	"gogame/base/service"
+	"gogame/base/util"
+	"math/rand"
 	"strconv"
+	"time"
 )
 
 var (
@@ -31,6 +34,8 @@ func GetGateServerInstance() *GateServer {
 }
 
 func (s *GateServer) Init() {
+	rand.Seed(time.Now().Unix())
+
 	// Redis init
 	redis.InitRedis()
 
@@ -41,6 +46,9 @@ func (s *GateServer) Init() {
 	if s.RouterInit() == false {
 		logger.Error("gate init failed as router init failed")
 	}
+
+	RefreshGameSvrList()
+	util.TimeInterval(time.Second, RefreshGameSvrList)
 }
 
 func (s *GateServer) Destroy() {
@@ -79,9 +87,22 @@ func (s *GateServer) RouterInit() bool {
 		router.Start()
 	}
 
+	crossRouterAddress := cfg.CrossRouterAddrs
+	if len(crossRouterAddress) > 0 {
+		for _, addr := range crossRouterAddress {
+			logger.Debug("CrossRouterInit connect router %s", addr)
+			s.routerMgr.routerMap[addr] = true
+			router := NewRouter(addr)
+			router.Start()
+		}
+	}
 	return true
 }
 
 func (s *GateServer) ReportState() {
+
+}
+
+func RefreshGameSvrList() {
 
 }

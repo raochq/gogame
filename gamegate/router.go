@@ -2,15 +2,18 @@ package main
 
 import (
 	"github.com/golang/protobuf/proto"
+	"gogame/base/conf"
 	"gogame/base/logger"
 	"gogame/base/network"
 	"gogame/base/network/session"
 	"gogame/base/util"
 	. "gogame/common"
+	. "gogame/errcode"
 	. "gogame/protocol"
 	"gogame/protocol/pb"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 type Router struct {
@@ -28,8 +31,10 @@ type RouterMgr struct {
 
 func NewRouterMgr() *RouterMgr {
 	return &RouterMgr{
-		routerMgr: make(map[uint16]*Router),
-		routerMap: make(map[string]bool),
+		routerMgr:      make(map[uint16]*Router),
+		crossRouterMgr: make(map[uint16]*Router),
+		routerMap:      make(map[string]bool),
+		svrList:        make(map[uint16]int),
 	}
 }
 
@@ -41,7 +46,18 @@ func NewRouter(addr string) *Router {
 
 func (r *Router) Start() {
 	r.client = network.NewTCPClient(r.addr)
-	r.client.DialAndServe(r, session.DefaultSessionCodec)
+	go r.client.DialAndServe(r, session.DefaultSessionCodec, 2*time.Second)
+	go func() {
+		for {
+			ok := <-r.client.ConnectChan
+			if ok == false {
+				RemoveSvrs(r)
+				return
+			}
+			r.register()
+		}
+	}()
+
 }
 func (r *Router) Connect(con *network.TCPConnection) {
 	logger.Debug("router connection router %s", con.RemoteAddr())
@@ -119,6 +135,29 @@ func (r *Router) sync(ssmsg *SSMessageBody) {
 	}
 }
 
+// 向Router注册
+func (router *Router) register() error {
+	head := &SSMessageHead{
+		SSCmd:   SSCMD_READY,
+		SrcType: EntityType_Portal,
+		SrcID:   uint16(conf.GameGateConf().ServerID),
+	}
+	msg := &SSMessage{Head: head, Body: nil}
+	data := PackSSMessage(msg)
+	if data == nil {
+		logger.Error("Register to router %v fail", head)
+		return EC_MarshalFail
+	}
+	for {
+		ok := router.client.GetConnection().Send(data)
+		if !ok {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	logger.Info("register srctype %d srcid %d", head.SrcType, head.SrcID)
+	return nil
+}
 func AddCrossRouterServer(svrIds []int32, router *Router) {
 	// 每次都是全量同步
 	svr := GetGateServerInstance().routerMgr
@@ -166,6 +205,29 @@ func AddRouterServer(svrIds []int32, router *Router) {
 		}
 	}
 }
+func RemoveSvrs(router *Router) {
+	svrMgr := GetGateServerInstance().routerMgr
+	svrMgr.Lock()
+	defer svrMgr.Unlock()
+
+	for svrId, vRouter := range svrMgr.routerMgr {
+		if vRouter == router {
+			delete(svrMgr.routerMgr, svrId)
+		}
+	}
+	var teamIds []uint16
+	for svrId, vRouter := range svrMgr.crossRouterMgr {
+		if vRouter == router {
+			delete(svrMgr.crossRouterMgr, svrId)
+			continue
+		}
+		teamIds = append(teamIds, svrId)
+	}
+	svrMgr.teamIds = teamIds
+	delete(svrMgr.routerMap, router.addr)
+
+}
+
 func GameSvrAlive(serverId uint16) bool {
 	svrMgr := GetGateServerInstance().routerMgr
 	svrMgr.RLock()

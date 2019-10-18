@@ -16,15 +16,17 @@ type TCPClient struct {
 	addr  string
 	retry bool
 
-	mutex      sync.Mutex
-	connection *TCPConnection
-	closed     bool
+	mutex       sync.RWMutex
+	connection  *TCPConnection
+	closed      bool
+	ConnectChan chan bool
 }
 
 func NewTCPClient(addr string) *TCPClient {
 	client := &TCPClient{
-		addr:  addr,
-		retry: false,
+		addr:        addr,
+		retry:       false,
+		ConnectChan: make(chan bool),
 	}
 	return client
 }
@@ -32,15 +34,26 @@ func NewTCPClient(addr string) *TCPClient {
 func (this *TCPClient) EnableRetry()  { this.retry = true }
 func (this *TCPClient) DisableRetry() { this.retry = false }
 
-func dialTCP(addr string) (*net.TCPConn, error) {
-	raddr, err := net.ResolveTCPAddr("tcp", addr)
-	if err != nil {
-		return nil, err
+func dialTCP(addr string, timeout time.Duration) (*net.TCPConn, error) {
+	if timeout <= 0 {
+		raddr, err := net.ResolveTCPAddr("tcp", addr)
+		if err != nil {
+			return nil, err
+		}
+		return net.DialTCP("tcp", nil, raddr)
+	} else {
+		conn, err := net.DialTimeout("tcp", addr, timeout)
+		return conn.(*net.TCPConn), err
 	}
-	return net.DialTCP("tcp", nil, raddr)
-}
 
-func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec) error {
+}
+func (this *TCPClient) notifyConnectState(state bool) {
+	select {
+	case this.ConnectChan <- state:
+	default:
+	}
+}
+func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec, timeout time.Duration) error {
 	if this.isClosed() {
 		return ErrClientClosed
 	}
@@ -54,12 +67,14 @@ func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec) error {
 
 	var tempDelay time.Duration // how long to sleep on connect failure
 	for {
-		conn, err := dialTCP(this.addr)
+		conn, err := dialTCP(this.addr, timeout)
 		if err != nil {
 			if this.isClosed() {
+				this.notifyConnectState(false)
 				return ErrClientClosed
 			}
 			if !this.retry {
+				this.notifyConnectState(false)
 				return err
 			}
 
@@ -79,9 +94,10 @@ func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec) error {
 
 		connection := newTCPConnection(conn)
 		if err := this.newConnection(connection); err != nil {
-			connection.close()
+			this.notifyConnectState(false)
 			return err
 		}
+		this.notifyConnectState(true)
 		if err := this.serveConnection(connection, handler, codec); err != nil {
 			return err
 		}
@@ -89,8 +105,8 @@ func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec) error {
 }
 
 func (this *TCPClient) isClosed() bool {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 	return this.closed
 }
 
@@ -119,8 +135,8 @@ func (this *TCPClient) serveConnection(connection *TCPConnection, handler TCPHan
 }
 
 func (this *TCPClient) GetConnection() *TCPConnection {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	if this.closed {
 		return nil

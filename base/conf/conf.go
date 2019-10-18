@@ -61,8 +61,9 @@ type RouterConfig struct {
 type GameGateConfig struct {
 	BaseConfig
 	RedisConfig
-	ListenPort  uint16   `goconf:"gate:listenPort"`
-	RouterAddrs []string `goconf:"gate:routers"`
+	ListenPort       uint16   `goconf:"gate:listenPort"`
+	RouterAddrs      []string `goconf:"gate:routers"`
+	CrossRouterAddrs []string `goconf:"gate:crossRouters"`
 }
 type TeamConfig struct {
 	BaseConfig

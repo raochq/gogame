@@ -123,6 +123,17 @@ func (rc *redisCache) getAccountToken(accountID int64) (string, error) {
 	return redis.String(conn.Do("Get", rKey))
 }
 
+func (rc *redisCache) refreshGameSvr() map[string]string {
+	conn := rc.Pool(RedisServerTypeCross).Get()
+	defer conn.Close()
+	reply, err := redis.StringMap(conn.Do("HGETALL", GameServerListInRedis))
+	if err != nil {
+		logger.Error("redis hgetall game svr list failed, %s", err.Error())
+		return nil
+	}
+	return reply
+}
+
 func GetAccountToken(accountID int64) (string, error) {
 	return cache.getAccountToken(accountID)
 }
@@ -132,4 +143,8 @@ func Pool(redisType RedisType) *redis.Pool {
 
 func UserLoc(con redis.Conn, uid int64) (uint16, error) {
 	return cache.userLoc(con, uid)
+}
+
+func RefreshGameSvr() map[string]string {
+	return cache.refreshGameSvr()
 }

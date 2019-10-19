@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/golang/protobuf/proto"
 	"gogame/base/conf"
+	"gogame/base/dao/redis"
 	"gogame/base/logger"
 	"gogame/base/network"
 	"gogame/base/network/session"
@@ -12,9 +14,14 @@ import (
 	. "gogame/protocol"
 	"gogame/protocol/pb"
 	"math/rand"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
+	"unsafe"
 )
+
+var routerMgr *RouterMgr
 
 type Router struct {
 	addr   string
@@ -25,7 +32,7 @@ type RouterMgr struct {
 	routerMgr      map[uint16]*Router
 	crossRouterMgr map[uint16]*Router
 	routerMap      map[string]bool
-	svrList        map[uint16]int //gamesvr列表
+	svrList        map[uint16]int //gamesvr状态列表
 	teamIds        []uint16       //teamsvr列表
 }
 
@@ -37,6 +44,13 @@ func NewRouterMgr() *RouterMgr {
 		svrList:        make(map[uint16]int),
 	}
 }
+func RouterMgrGetMe() *RouterMgr {
+	if routerMgr == nil {
+		mgr := NewRouterMgr()
+		atomic.CompareAndSwapPointer((*unsafe.Pointer)(unsafe.Pointer(&routerMgr)), nil, unsafe.Pointer(mgr))
+	}
+	return routerMgr
+}
 
 func NewRouter(addr string) *Router {
 	router := new(Router)
@@ -44,21 +58,32 @@ func NewRouter(addr string) *Router {
 	return router
 }
 
-func (r *Router) Start() {
-	r.client = network.NewTCPClient(r.addr)
-	go r.client.DialAndServe(r, session.DefaultSessionCodec, 2*time.Second)
-	go func() {
-		for {
-			ok := <-r.client.ConnectChan
-			if ok == false {
-				RemoveSvrs(r)
-				return
-			}
-			r.register()
-		}
-	}()
+func (routerMgr *RouterMgr) RouterInit() bool {
+	cfg := conf.GameGateConf()
+	routerAddrs := cfg.RouterAddrs
+	if len(routerAddrs) <= 0 {
+		logger.Error("Router init fail no routers")
+		return false
+	}
+	for i := 0; i < len(routerAddrs); i++ {
+		logger.Debug("RouterInit connect router %s", routerAddrs[i])
+		routerMgr.routerMap[routerAddrs[i]] = true
+		router := NewRouter(routerAddrs[i])
+		router.Start()
+	}
 
+	crossRouterAddress := cfg.CrossRouterAddrs
+	if len(crossRouterAddress) > 0 {
+		for _, addr := range crossRouterAddress {
+			logger.Debug("CrossRouterInit connect router %s", addr)
+			routerMgr.routerMap[addr] = true
+			router := NewRouter(addr)
+			router.Start()
+		}
+	}
+	return true
 }
+
 func (r *Router) Connect(con *network.TCPConnection) {
 	logger.Debug("router connection router %s", con.RemoteAddr())
 }
@@ -158,9 +183,25 @@ func (router *Router) register() error {
 	logger.Info("register srctype %d srcid %d", head.SrcType, head.SrcID)
 	return nil
 }
+
+func (r *Router) Start() {
+	r.client = network.NewTCPClient(r.addr)
+	go r.client.DialAndServe(r, session.DefaultSessionCodec, 2*time.Second)
+	go func() {
+		for {
+			ok := <-r.client.ConnectChan
+			if ok == false {
+				RemoveSvrs(r)
+				return
+			}
+			r.register()
+		}
+	}()
+}
+
 func AddCrossRouterServer(svrIds []int32, router *Router) {
 	// 每次都是全量同步
-	svr := GetGateServerInstance().routerMgr
+	svr := RouterMgrGetMe()
 	var oldSvrIds []int32
 	svr.Lock()
 
@@ -184,7 +225,7 @@ func AddCrossRouterServer(svrIds []int32, router *Router) {
 }
 func AddRouterServer(svrIds []int32, router *Router) {
 	// 每次都是全量同步，先删除，插入
-	svr := GetGateServerInstance().routerMgr
+	svr := RouterMgrGetMe()
 	var oldSvrIds []int32
 	svr.Lock()
 	for svrID, vRouter := range svr.routerMgr {
@@ -206,7 +247,7 @@ func AddRouterServer(svrIds []int32, router *Router) {
 	}
 }
 func RemoveSvrs(router *Router) {
-	svrMgr := GetGateServerInstance().routerMgr
+	svrMgr := RouterMgrGetMe()
 	svrMgr.Lock()
 	defer svrMgr.Unlock()
 
@@ -229,7 +270,7 @@ func RemoveSvrs(router *Router) {
 }
 
 func GameSvrAlive(serverId uint16) bool {
-	svrMgr := GetGateServerInstance().routerMgr
+	svrMgr := RouterMgrGetMe()
 	svrMgr.RLock()
 	defer svrMgr.RUnlock()
 	_, ok := svrMgr.svrList[serverId]
@@ -237,7 +278,7 @@ func GameSvrAlive(serverId uint16) bool {
 }
 
 func DispatchGameSvr() uint16 {
-	svrMgr := GetGateServerInstance().routerMgr
+	svrMgr := RouterMgrGetMe()
 	availSirs := make([]uint16, 0, len(svrMgr.svrList))
 	svrMgr.RLock()
 	for id, status := range svrMgr.svrList {
@@ -251,4 +292,34 @@ func DispatchGameSvr() uint16 {
 	}
 	index := rand.Intn(len(availSirs))
 	return availSirs[index]
+}
+
+func RefreshGameSvrList() {
+	routerMgr = RouterMgrGetMe()
+	now := time.Now().Unix()
+	svrMap := redis.RefreshGameSvr()
+	tSvrList := make(map[uint16]int)
+	for id, data := range svrMap {
+		mData := make(map[string]int)
+		err := json.Unmarshal([]byte(data), &mData)
+		if err != nil {
+			logger.Warn("refresh portal list unmarshal error, %s", err.Error())
+			continue
+		}
+		if mData["zoneid"] != conf.GameGateConf().ZoneID {
+			continue
+		}
+		if int(now)-mData["timestamp"] > 15 {
+			logger.Debug("game svr died, %s", id)
+			continue
+		}
+		serverId, err := strconv.Atoi(id)
+		if err != nil {
+			continue
+		}
+		tSvrList[uint16(serverId)] = mData["status"]
+	}
+	routerMgr.Lock()
+	routerMgr.svrList = tSvrList
+	routerMgr.Unlock()
 }

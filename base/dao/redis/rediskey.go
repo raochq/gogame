@@ -20,7 +20,8 @@ const (
 
 // For Server
 const (
-	ServerList = "server:list"
+	ServerList            = "server:list"
+	GameServerListInRedis = "serverlist:game"
 )
 
 // For TypeUser.

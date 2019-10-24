@@ -24,8 +24,8 @@ import (
 var routerMgr *RouterMgr
 
 type Router struct {
-	addr   string
-	client *network.TCPClient
+	*network.TCPClient
+	addr string
 }
 type RouterMgr struct {
 	sync.RWMutex
@@ -174,7 +174,7 @@ func (router *Router) register() error {
 		return EC_MarshalFail
 	}
 	for {
-		ok := router.client.GetConnection().Send(data)
+		ok := router.GetConnection().Send(data)
 		if !ok {
 			break
 		}
@@ -185,11 +185,11 @@ func (router *Router) register() error {
 }
 
 func (r *Router) Start() {
-	r.client = network.NewTCPClient(r.addr)
-	go r.client.DialAndServe(r, session.DefaultSessionCodec, 2*time.Second)
+	r.TCPClient = network.NewTCPClient(r.addr)
+	go r.DialAndServe(r, session.DefaultSessionCodec, 2*time.Second)
 	go func() {
 		for {
-			ok := <-r.client.ConnectChan
+			ok := <-r.ConnectChan
 			if ok == false {
 				RemoveSvrs(r)
 				return
@@ -294,7 +294,7 @@ func DispatchGameSvr() uint16 {
 	return availSirs[index]
 }
 
-func RefreshGameSvrList() {
+func refreshGameSvrList() {
 	routerMgr = RouterMgrGetMe()
 	now := time.Now().Unix()
 	svrMap := redis.RefreshGameSvr()
@@ -322,4 +322,56 @@ func RefreshGameSvrList() {
 	routerMgr.Lock()
 	routerMgr.svrList = tSvrList
 	routerMgr.Unlock()
+}
+
+func refreshRouterSvrList() {
+	now := time.Now().Unix()
+	routerMgr = RouterMgrGetMe()
+	svrMap := redis.RefreshZoneRouters()
+	for addr, data := range svrMap {
+		mData := make(map[string]int)
+		err := json.Unmarshal([]byte(data), &mData)
+		if err != nil {
+			logger.Warn("refresh portal list unmarshal error, %s", err.Error())
+			continue
+		}
+		if int(now)-mData["timestamp"] > 15 {
+			logger.Debug("router svr died, %s", addr)
+			continue
+		}
+		routerMgr.Lock()
+		_, ok := routerMgr.routerMap[addr]
+		if !ok {
+			routerMgr.routerMap[addr] = true
+		}
+		routerMgr.Unlock()
+		if !ok {
+			router := NewRouter(addr)
+			router.Start()
+		}
+	}
+
+	svrMap = redis.RefreshCrossRouters()
+	for addr, data := range svrMap {
+		mData := make(map[string]int)
+		err := json.Unmarshal([]byte(data), &mData)
+		if err != nil {
+			logger.Warn("refresh portal list unmarshal error, %s", err.Error())
+			continue
+		}
+		if int(now)-mData["timestamp"] > 15 {
+			logger.Debug("router svr died, %s", addr)
+			continue
+		}
+		routerMgr.Lock()
+		_, ok := routerMgr.routerMap[addr]
+		if !ok {
+			routerMgr.routerMap[addr] = true
+		}
+		routerMgr.Unlock()
+		if !ok {
+			router := NewRouter(addr)
+			router.Start()
+		}
+	}
 }

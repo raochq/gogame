@@ -17,6 +17,8 @@ const (
 	EC_TokenInvalid     = ErrCode(-10) //Token无效(验证未通过)
 	EC_AccountReplaced  = ErrCode(-11) //账号被新登录踢出
 	EC_ServerBusy       = ErrCode(-12) //服务器忙，请稍后再试
+	EC_IMSvrNotFound    = ErrCode(-13) //聊天服维护中
+	EC_PlayerNoOnline   = ErrCode(-14) //用户已离线
 )
 
 func (i ErrCode) Error() string {

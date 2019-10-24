@@ -18,7 +18,7 @@ import (
 	"gogame/base/network"
 	. "gogame/common"
 	. "gogame/errcode"
-	"gogame/protocol"
+	. "gogame/protocol"
 	"gogame/protocol/pb"
 )
 
@@ -77,7 +77,7 @@ func (clientMgr *ClientMgr) Receive(con *network.TCPConnection, data []byte) {
 	if client.Flag&SESS_ENCRYPT != 0 {
 		client.Decoder.XORKeyStream(data, data)
 	}
-	csMsg := &protocol.CSMessage{}
+	csMsg := &CSMessage{}
 	err := csMsg.UnMarshal(data)
 	if err != nil {
 		logger.Error("Protocol unmarshal msg error(%v)", err)
@@ -191,7 +191,7 @@ func (clientMgr *ClientMgr) Remove(client *ClientTask) {
 	clientMgr.Unlock()
 }
 
-func (clientMgr *ClientMgr) BroadcastMsg(csMsg *protocol.CSMessage) {
+func (clientMgr *ClientMgr) BroadcastMsg(csMsg *CSMessage) {
 	clientMgr.RLock()
 	defer clientMgr.RUnlock()
 	for _, v_client := range clientMgr.clients {
@@ -201,18 +201,18 @@ func (clientMgr *ClientMgr) BroadcastMsg(csMsg *protocol.CSMessage) {
 
 //发送消息到客户端
 func (client *ClientTask) SendMessageToMe(msg proto.Message) error {
-	bMsgBody, msgID, err := protocol.Marshal(msg)
+	bMsgBody, msgID, err := Marshal(msg)
 	if err != nil {
 		logger.Error("SendMessageToMe %d protobuf marshal fail %s", client.AccountID, err.Error())
 		return EC_MarshalFail
 	}
-	csMsg := &protocol.CSMessage{}
+	csMsg := &CSMessage{}
 	csMsg.Head.MessageID = msgID
 	csMsg.Body = bMsgBody
 	return client.SendCSMsg(csMsg)
 }
 
-func (client *ClientTask) SendCSMsg(csMsg *protocol.CSMessage) error {
+func (client *ClientTask) SendCSMsg(csMsg *CSMessage) error {
 	data, _ := csMsg.Marshal()
 	if client.Flag&SESS_ENCRYPT != 0 {
 		client.Encoder.XORKeyStream(data, data)
@@ -254,12 +254,12 @@ func (client *ClientTask) Close() {
 func (client *ClientTask) HookClientMessage(msgID uint16, packetNo uint32, bMsgBody []byte) (bool, []byte, error) {
 	var ret error
 	switch msgID {
-	case protocol.MsgID_MessageCharLoginReq:
+	case MsgID_MessageCharLoginReq:
 		bMsgBody, ret = client.handlerLoginMsg(bMsgBody)
 		if ret != nil {
 			return false, bMsgBody, ret
 		}
-	case protocol.MsgID_MessagePing:
+	case MsgID_MessagePing:
 		client.handlePing(packetNo)
 		return false, bMsgBody, nil
 		// todo: 可以再此处理跨服，连接 teamsvr，snsserver 的消息
@@ -267,7 +267,7 @@ func (client *ClientTask) HookClientMessage(msgID uint16, packetNo uint32, bMsgB
 		logger.Debug("%d receive message %d", client.AccountID, msgID)
 	}
 
-	if !protocol.IsProtocolExist(msgID) {
+	if !IsProtocolExist(msgID) {
 		logger.Warn("Client send unknown msg(0x%x)", msgID)
 		return false, bMsgBody, EC_UnknownMessage
 	}
@@ -275,7 +275,7 @@ func (client *ClientTask) HookClientMessage(msgID uint16, packetNo uint32, bMsgB
 }
 
 //处理来此服务器的消息
-func (client *ClientTask) HookServerMessage(ssMsg *protocol.SSMessageBody) (bool, error) {
+func (client *ClientTask) HookServerMessage(ssMsg *SSMessageBody) (bool, error) {
 	return true, nil
 }
 
@@ -368,7 +368,7 @@ func (client *ClientTask) gameServerForward(msgID uint16, packetNo uint32, bMsgB
 		return EC_GamesvrError
 	}
 
-	ssMsg := &protocol.SSMessageBody{
+	ssMsg := &SSMessageBody{
 		MessageID:    msgID,
 		PacketNo:     packetNo,
 		SrcAccountID: client.AccountID,
@@ -381,7 +381,7 @@ func (client *ClientTask) gameServerForward(msgID uint16, packetNo uint32, bMsgB
 
 // forward messages to team server
 func (client *ClientTask) teamServerForward(msgID uint16, packetNo uint32, bMsgBody []byte) error {
-	ssMsg := &protocol.SSMessageBody{
+	ssMsg := &SSMessageBody{
 		MessageID:    msgID,
 		PacketNo:     packetNo,
 		SrcAccountID: client.AccountID,
@@ -394,7 +394,7 @@ func (client *ClientTask) teamServerForward(msgID uint16, packetNo uint32, bMsgB
 
 // forward messages to im server
 func (client *ClientTask) imServerForward(msgID uint16, packetNo uint32, bMsgBody []byte) error {
-	ssMsg := &protocol.SSMessageBody{
+	ssMsg := &SSMessageBody{
 		MessageID:    msgID,
 		PacketNo:     packetNo,
 		SrcAccountID: client.AccountID,
@@ -408,19 +408,19 @@ func (client *ClientTask) imServerForward(msgID uint16, packetNo uint32, bMsgBod
 // 获取协议目的地址
 // 根据协议范围段区分
 func GetMessageDestByMsgID(msgID uint16) int32 {
-	switch msgID & protocol.Message_ID_MASK {
-	case protocol.Message_IM_Start:
+	switch msgID & Message_ID_MASK {
+	case Message_IM_Start:
 		return EntityType_IM
-	case protocol.Message_Team_Start:
+	case Message_Team_Start:
 		return EntityType_TeamSvr
 	default:
 		return EntityType_GameSvr
 	}
 }
 
-func SendMessageToRouter(dstType int8, dstID uint16, ssMsg *protocol.SSMessageBody) error {
+func SendMessageToRouter(dstType int8, dstID uint16, ssMsg *SSMessageBody) error {
 	cfg := conf.GameGateConf()
-	head := &protocol.SSMessageHead{
+	head := &SSMessageHead{
 		SSCmd:     SSCMD_MSG,
 		TransType: TransType_ByKey,
 		SrcType:   EntityType_Portal,
@@ -433,7 +433,7 @@ func SendMessageToRouter(dstType int8, dstID uint16, ssMsg *protocol.SSMessageBo
 		logger.Error("SendMessageToRouter dstType %d dstID %d fail", dstType, dstID)
 		return EC_MarshalFail
 	}
-	msg := &protocol.SSMessage{Head: head, Body: body}
+	msg := &SSMessage{Head: head, Body: body}
 	logger.Debug("SendMessageToRouter%v", msg)
 	//var router *Router
 	//if dstType == EntityType_TeamSvr {
@@ -459,28 +459,27 @@ func SendMessageToRouter(dstType int8, dstID uint16, ssMsg *protocol.SSMessageBo
 	return nil
 }
 
-func SendMessageToIMSvr(ssMsg *protocol.SSMessageBody) error {
-	//im := GetIMByAccountID(ssMsg.DstAccountID)
-	//if im == nil {
-	//	logger.Debug("SendMessageToIMSvr get im nil %d", ssMsg.DstAccountID)
-	//	return EC_ParameterInvalid
-	//}
+func SendMessageToIMSvr(ssMsg *SSMessageBody) error {
+	im := GetIMByAccountID(ssMsg.DstAccountID)
+	if im == nil {
+		logger.Debug("SendMessageToIMSvr get im nil %d", ssMsg.DstAccountID)
+		return EC_ParameterInvalid
+	}
 	cfg := conf.GameGateConf()
-	head := &protocol.SSMessageHead{
+	head := &SSMessageHead{
 		SSCmd:     SSCMD_MSG,
 		TransType: TransType_ByKey,
 		SrcType:   EntityType_Portal,
 		DstType:   EntityType_IM,
 		SrcID:     uint16(cfg.ServerID),
-		//DstID:     im.id,
+		DstID:     im.id,
 	}
 	body, err := ssMsg.Marshal()
 	if err != nil {
-		//logger.Error("SendMessageToIMSvr dstID %d fail", im.id)
+		logger.Error("SendMessageToIMSvr dstID %d fail", im.id)
 		return EC_MarshalFail
 	}
 	logger.Debug("SendMessageToIMSvr %d msg 0x%x", ssMsg.DstAccountID, ssMsg.MessageID)
-	logger.Debug("SendMessageToIMSvr %v", &protocol.SSMessage{Head: head, Body: body})
-	//return im.sendmsg(&SSMessage{Head: head, Body: body})
-	return nil
+	logger.Debug("SendMessageToIMSvr %v", &SSMessage{Head: head, Body: body})
+	return im.SendMsg(&SSMessage{Head: head, Body: body})
 }

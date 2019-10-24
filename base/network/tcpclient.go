@@ -54,7 +54,7 @@ func (this *TCPClient) notifyConnectState(state bool) {
 	}
 }
 func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec, timeout time.Duration) error {
-	if this.isClosed() {
+	if this.IsClosed() {
 		return ErrClientClosed
 	}
 
@@ -69,7 +69,7 @@ func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec, timeout tim
 	for {
 		conn, err := dialTCP(this.addr, timeout)
 		if err != nil {
-			if this.isClosed() {
+			if this.IsClosed() {
 				this.notifyConnectState(false)
 				return ErrClientClosed
 			}
@@ -104,7 +104,7 @@ func (this *TCPClient) DialAndServe(handler TCPHandler, codec Codec, timeout tim
 	}
 }
 
-func (this *TCPClient) isClosed() bool {
+func (this *TCPClient) IsClosed() bool {
 	this.mutex.RLock()
 	defer this.mutex.RUnlock()
 	return this.closed

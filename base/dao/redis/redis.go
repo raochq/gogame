@@ -123,12 +123,12 @@ func (rc *redisCache) getAccountToken(accountID int64) (string, error) {
 	return redis.String(conn.Do("Get", rKey))
 }
 
-func (rc *redisCache) refreshGameSvr() map[string]string {
-	conn := rc.Pool(RedisServerTypeCross).Get()
+func (rc *redisCache) refreshServerList(redisType RedisType, redisKey string) map[string]string {
+	conn := rc.Pool(redisType).Get()
 	defer conn.Close()
-	reply, err := redis.StringMap(conn.Do("HGETALL", GameServerListInRedis))
+	reply, err := redis.StringMap(conn.Do("HGETALL", redisKey))
 	if err != nil {
-		logger.Error("redis hgetall game svr list failed, %s", err.Error())
+		logger.Error("redis %v hgetall %v failed, %s",redisType,redisKey, err.Error())
 		return nil
 	}
 	return reply
@@ -146,5 +146,16 @@ func UserLoc(con redis.Conn, uid int64) (uint16, error) {
 }
 
 func RefreshGameSvr() map[string]string {
-	return cache.refreshGameSvr()
+	return cache.refreshServerList(RedisServerTypeCross,GameServerListInRedis)
+}
+
+func RefreshIMSvr() map[string]string {
+	return cache.refreshServerList(RedisServerTypeCross,IMListInRedis)
+}
+
+func RefreshZoneRouters() map[string]string {
+	return cache.refreshServerList(RedisServerTypeZone,RouterServerListInRedis)
+}
+func RefreshCrossRouters() map[string]string {
+	return cache.refreshServerList(RedisServerTypeCross,RouterServerListInRedis)
 }

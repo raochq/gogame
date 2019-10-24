@@ -138,7 +138,9 @@ func init() {
 	flag.Parse()
 	if confFile == "" {
 		fileName := util.GetAppName() + ".conf"
-		if !util.Exists(fileName) {
+		if util.Exists(fileName) {
+			confFile = fileName
+		} else {
 			fp, _ := os.UserConfigDir()
 			fp = fp + "/" + fileName
 			if util.Exists(fp) {

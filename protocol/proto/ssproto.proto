@@ -2,6 +2,15 @@ syntax = "proto3";
 package pb;
 // router同步server
 message MessageSyncServer {
-    repeated int32 ServerIDs = 1;
-    uint32 ServerType = 2;
+    //optional kSS ID = 1 [default = MessageSS_SysGMCmd_S];
+    repeated int32 ServerIDs = 2;
+    uint32 ServerType = 3;
+}
+
+// ss之间同步群组消息
+message MessageGroupMsgNoti {
+    //optional kSS ID = 1 [default = MessageSS_GroupMsgNoti_S];
+    repeated int64 AccountIDs = 2; // 发送给目标玩家
+    int32 MsgID = 3; // 消息ID
+    bytes MsgBody = 4; // 消息体
 }

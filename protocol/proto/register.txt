@@ -1,8 +1,8 @@
 //用于自动注册proto协议，必须是 协议ID = 协议名称 //注释
 
 //服务器间通信消息
-MessageSyncServer = 2 //服务器间同步
-
+MessageSyncServer = 0x1205 //服务器间同步
+MessageGroupMsgNoti = 0x1206//ss之间同步群组消息
 
 //客户端与服务器间消息
 MessagePing = 0x1001 //ping消息

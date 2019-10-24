@@ -21,7 +21,15 @@ const (
 // For Server
 const (
 	ServerList            = "server:list"
-	GameServerListInRedis = "serverlist:game"
+	PortalListInRedis        = "serverlist:portal"
+	LoginServerListInRedis   = "serverlist:login"
+	GameServerListInRedis    = "serverlist:game"
+	BattleServerListInRedis  = "serverlist:battle"
+	RouterServerListInRedis  = "serverlist:router"
+	IMListInRedis            = "serverlist:im"
+	TeamServerListInRedis    = "serverlist:team"
+	SnsServerListInRedis     = "serverlist:sns"
+	VersionServerListInRedis = "serverlist:version"
 )
 
 // For TypeUser.

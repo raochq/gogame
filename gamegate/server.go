@@ -19,6 +19,7 @@ var (
 
 type GateServer struct {
 	tcpServer *network.TCPServer
+	isClosed  bool
 }
 
 func NewServer() *GateServer {
@@ -46,9 +47,10 @@ func (s *GateServer) Init() {
 	if RouterMgrGetMe().RouterInit() == false {
 		logger.Error("gate init failed as router init failed")
 	}
+	IMMgrGetMe()
 
-	RefreshGameSvrList()
-	util.TimeInterval(30*time.Second, RefreshGameSvrList)
+	s.RefreshServerList()
+	util.TimeInterval(30*time.Second, s.RefreshServerList)
 }
 
 func (s *GateServer) Destroy() {
@@ -69,9 +71,21 @@ func (s *GateServer) MainLoop(sig <-chan byte) {
 }
 func (s *GateServer) Terminate() {
 	logger.Info("GateServer terminated")
+	s.isClosed = true
 	s.tcpServer.Close()
+	IMMgrGetMe().Close()
 	ClientMgrGetMe().Close()
+
 }
 func (s *GateServer) ReportState() {
 
+}
+
+func (s *GateServer) RefreshServerList() {
+	if s.isClosed {
+		return
+	}
+	refreshGameSvrList()
+	refreshIMSvrList()
+	refreshRouterSvrList()
 }

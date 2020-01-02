@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
 
 	"gogame/base/conf"

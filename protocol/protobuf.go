@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-//go:generate go run cmd/main.go proto/register.txt
+//go:generate go run cmd/main.go
 //go:generate go fmt protoFactory.go
 const (
 	Message_ID_MASK       = 0xff00

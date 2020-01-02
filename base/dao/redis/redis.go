@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"gogame/base/conf"
 	"gogame/base/logger"
 	"time"
@@ -128,7 +128,7 @@ func (rc *redisCache) refreshServerList(redisType RedisType, redisKey string) ma
 	defer conn.Close()
 	reply, err := redis.StringMap(conn.Do("HGETALL", redisKey))
 	if err != nil {
-		logger.Error("redis %v hgetall %v failed, %s",redisType,redisKey, err.Error())
+		logger.Error("redis %v hgetall %v failed, %s", redisType, redisKey, err.Error())
 		return nil
 	}
 	return reply
@@ -146,16 +146,16 @@ func UserLoc(con redis.Conn, uid int64) (uint16, error) {
 }
 
 func RefreshGameSvr() map[string]string {
-	return cache.refreshServerList(RedisServerTypeCross,GameServerListInRedis)
+	return cache.refreshServerList(RedisServerTypeCross, GameServerListInRedis)
 }
 
 func RefreshIMSvr() map[string]string {
-	return cache.refreshServerList(RedisServerTypeCross,IMListInRedis)
+	return cache.refreshServerList(RedisServerTypeCross, IMListInRedis)
 }
 
 func RefreshZoneRouters() map[string]string {
-	return cache.refreshServerList(RedisServerTypeZone,RouterServerListInRedis)
+	return cache.refreshServerList(RedisServerTypeZone, RouterServerListInRedis)
 }
 func RefreshCrossRouters() map[string]string {
-	return cache.refreshServerList(RedisServerTypeCross,RouterServerListInRedis)
+	return cache.refreshServerList(RedisServerTypeCross, RouterServerListInRedis)
 }
